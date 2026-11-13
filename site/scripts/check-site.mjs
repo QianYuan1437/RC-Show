@@ -21,6 +21,16 @@ const browser = await puppeteer.launch({
 const problems = []
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
+/** Picks `value` in the UiSelect inside `root` (the trigger opens a list teleported to <body>); `shot` saves the open list. */
+async function pick(page, root, value, shot) {
+  await page.click(`${root} .ui-select__trigger`)
+  const opt = await page.waitForSelector(`.ui-select__list [data-value="${value}"]`, { visible: true })
+  await sleep(200)
+  if (shot) await page.screenshot({ path: shot })
+  await opt.click()
+  await page.waitForSelector('.ui-select__list', { hidden: true })
+}
+
 async function open(path) {
   const page = await browser.newPage()
   page.on('console', (m) => {
@@ -88,7 +98,7 @@ for (const path of PAGES) {
   for (const [mode, ctrl] of [['接触力控', 'hybrid'], ['手引导', 'drag']]) {
     await clickText(page, mode)
     await sleep(500)
-    await page.select('.cp select', ctrl)
+    await pick(page, '.cp', ctrl, `${outDir}/playground-dropdown-${ctrl}.png`)
     await sleep(4000)
     const r = await readout(page)
     console.log(`${mode} (${ctrl}):`, r)
@@ -97,7 +107,7 @@ for (const path of PAGES) {
   }
   // learned policy
   await clickText(page, '轨迹跟踪')
-  await page.select('.cp select', 'rl')
+  await pick(page, '.cp', 'rl')
   await sleep(4000)
   const rl = await readout(page)
   console.log('rl:', rl)

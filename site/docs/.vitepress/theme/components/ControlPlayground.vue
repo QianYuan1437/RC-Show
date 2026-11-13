@@ -10,6 +10,7 @@ import type * as THREE from 'three'
 import LineChart, { type ChartSeries } from './LineChart.vue'
 import RobotPicker from './RobotPicker.vue'
 import RobotViewer from './RobotViewer.vue'
+import UiSelect from './UiSelect.vue'
 import type { Pose } from '../lib/kinematics'
 import type { Mode, Playground, PlaygroundSpec, ReachMeta, Sample } from '../lib/playground'
 import type { GizmoMode, RobotScene } from '../lib/robotScene'
@@ -94,6 +95,16 @@ const reacted = ref(false)
 
 const options = computed(() =>
   GROUPS.map((g) => ({ ...g, items: g.items.filter((c) => c.modes.includes(mode.value)) })).filter((g) => g.items.length),
+)
+const ctrlOptions = computed(() =>
+  options.value.map((g) => ({
+    label: g.label,
+    items: g.items.map((c) => {
+      const rl = c.id === 'rl'
+      const hint = !rl ? undefined : policyState.value === 'missing' ? '模型未导出' : policyState.value === 'error' ? '加载失败' : policyState.value !== 'ready' ? '加载中' : undefined
+      return { value: c.id, label: c.label, hint, disabled: rl && policyState.value !== 'ready' }
+    }),
+  })),
 )
 const modeHint = computed(() => MODES.find((m) => m.id === mode.value)!.hint)
 
@@ -376,13 +387,7 @@ const xRange = computed(() => {
         <p class="hint">{{ modeHint }}</p>
         <label class="field">
           <span>控制器</span>
-          <select v-model="ctrlId">
-            <optgroup v-for="g in options" :key="g.label" :label="g.label">
-              <option v-for="c in g.items" :key="c.id" :value="c.id" :disabled="c.id === 'rl' && policyState !== 'ready'">
-                {{ c.label }}{{ c.id === 'rl' && policyState === 'missing' ? '（模型未导出）' : '' }}
-              </option>
-            </optgroup>
-          </select>
+          <UiSelect v-model="ctrlId" :options="ctrlOptions" aria-label="控制器" />
         </label>
         <label class="slider">
           <span>未建模负载</span>
@@ -538,15 +543,6 @@ const xRange = computed(() => {
   font-size: 12px;
   line-height: 1.5;
   color: var(--vp-c-text-3);
-}
-select {
-  width: 100%;
-  padding: 4px 6px;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: var(--ik-radius-sm);
-  background: var(--vp-c-bg);
-  color: var(--vp-c-text-1);
-  font-size: 12.5px;
 }
 .slider {
   display: grid;
